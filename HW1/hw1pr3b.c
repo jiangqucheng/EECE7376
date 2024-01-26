@@ -1,3 +1,11 @@
+/**
+ * @file hw1pr3b.c
+ * @author Qucheng Jiang
+ * @author jiang.qu@northeastern.edu
+ * @author NUID 001569593
+ * @date 2024-01-23
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>

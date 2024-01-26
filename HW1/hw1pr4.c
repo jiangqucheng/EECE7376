@@ -1,3 +1,11 @@
+/**
+ * @file hw1pr4.c
+ * @author Qucheng Jiang
+ * @author jiang.qu@northeastern.edu
+ * @author NUID 001569593
+ * @date 2024-01-23
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,8 +43,11 @@ int get_args(char *in, char **argv, int max_args)
 
     while (pSepStr != NULL && argc < max_args)
     {
+        // Duplicate the string
         argv[argc] = strdup(pSepStr);
+        // Get next argument
         pSepStr = strtok(NULL, " ");
+        // Next argument idx
         argc++;
     }
     return argc;
@@ -44,11 +55,12 @@ int get_args(char *in, char **argv, int max_args)
 
 void print_args(int argc, char **argv)
 {
+    // Print arguments
     for (int i = 0; i < argc; i++) printf("argv[%d] = '%s'\n", i, argv[i]);
 }
 
-// Free allocated memory
 void free_args(int argc, char **argv)
 {
+    // Free allocated memory
     for (int i = 0; i < argc; i++) free(argv[i]);
 }
