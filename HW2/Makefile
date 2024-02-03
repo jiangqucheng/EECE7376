@@ -1,5 +1,6 @@
 # Define the executable target
 TARGETS = pr1 pr2 pr3
+# TARGETS = pr1 pr2
 HWID = 2
 
 # Main rule

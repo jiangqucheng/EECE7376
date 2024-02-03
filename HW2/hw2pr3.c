@@ -1,5 +1,5 @@
 /**
- * @file hw2pr2.c
+ * @file hw2pr3.c
  * @author Qucheng Jiang
  * @author jiang.qu@northeastern.edu
  * @author NUID 001569593
@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-// #define DEBUG
+#define DEBUG
 
 #ifdef DEBUG
 #undef DEBUG
@@ -33,6 +33,9 @@ struct Command
 {
 	struct SubCommand sub_commands[MAX_SUB_COMMANDS];
 	int num_sub_commands;
+    char *stdin_redirect;
+    char *stdout_redirect;
+    int background;
 };
 typedef struct Command SCommand;
 typedef struct SubCommand SSubCommand;
@@ -53,6 +56,20 @@ typedef struct SubCommand SSubCommand;
  * @param command - The `Command` data structure
  */
 void ReadCommand(char *line, struct Command *command);
+
+/**
+ * @brief Read redirects and background
+ * This function populates fields `stdin_redirect`, `stdout_redirect`, and 
+ * `background` for the `command` passed by reference in the function argument. 
+ * The function assumes that all other fields of the command structure have 
+ * already been populated, as a result to a previous invocation to `ReadCommand`. 
+ * The function should internally scan the arguments from the last sub-command 
+ * in reverse order, extracting trailing `&`, `> file`, or `< file` patterns 
+ * in a loop. 
+ * @param command - The `Command` data structure
+ */
+void ReadRedirectsAndBackground(struct Command *command);
+
 /**
  * @brief Print command
  * @details
@@ -103,6 +120,7 @@ int main()
 
     // Extract arguments and print them
     ReadCommand(s, &cmd);
+    ReadRedirectsAndBackground(&cmd);
     PrintCommand(&cmd);
 
     // Clean up memory and exit
@@ -166,6 +184,30 @@ void ReadArgs(char *in, char **argv, int size)
     // return argc;
 }
 
+void ReadRedirectsAndBackground(struct Command *command) {
+    command->stdin_redirect = NULL;
+    command->stdout_redirect = NULL;
+    command->background = 0;
+
+    struct SubCommand *lastCmd = &command->sub_commands[command->num_sub_commands - 1];
+    for (int i = MAX_ARGS - 2; i >= 0; i--) 
+    {
+        if (lastCmd->argv[i] == NULL) continue;
+        if (strcmp(lastCmd->argv[i], "&") == 0) {
+            command->background = 1;
+            lastCmd->argv[i] = NULL; // Remove '&' from arguments
+        } else if (strcmp(lastCmd->argv[i], ">") == 0 && lastCmd->argv[i + 1] != NULL) {
+            command->stdout_redirect = lastCmd->argv[i + 1];
+            lastCmd->argv[i] = NULL; // Remove '>' and filename from arguments
+            lastCmd->argv[i + 1] = NULL;
+        } else if (strcmp(lastCmd->argv[i], "<") == 0 && lastCmd->argv[i + 1] != NULL) {
+            command->stdin_redirect = lastCmd->argv[i + 1];
+            lastCmd->argv[i] = NULL; // Remove '<' and filename from arguments
+            lastCmd->argv[i + 1] = NULL;
+        }
+    }
+}
+
 void PrintCommand(struct Command *command)
 {
     // Print sub-commands
@@ -175,6 +217,19 @@ void PrintCommand(struct Command *command)
         RELEASE(printf("Command %lu\n", i);)
         DEBUG(printf("Command %lu : '%s'\n", i, p_subcmd->line);)
         PrintArgs(p_subcmd->argv);
+    }
+
+    // Print redirects
+    if (command->stdin_redirect != NULL) {
+        printf("Redirect stdin: %s\n", command->stdin_redirect);
+    }
+    if (command->stdout_redirect != NULL) {
+        printf("Redirect stdout: %s\n", command->stdout_redirect);
+    }
+    if (command->background) {
+        printf("Background: yes\n");
+    }else {
+        printf("Background: no\n");
     }
 }
 
