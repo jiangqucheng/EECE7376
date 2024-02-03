@@ -183,7 +183,7 @@ void PrintArgs(char **argv)
 {
     // Print arguments
     int i = 0;
-    while (*argv != NULL) printf( DEBUG("  ") "argv[%d] = '%s'" DEBUG("\n") RELEASE(" "), i++, *(argv++));
+    while (*argv != NULL) printf( DEBUG("  ") "argv[%d] = '%s'\n", i++, *(argv++));
     RELEASE(printf("\n");)
 }
 

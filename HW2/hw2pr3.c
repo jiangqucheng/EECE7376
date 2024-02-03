@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define DEBUG
+// #define DEBUG
 
 #ifdef DEBUG
 #undef DEBUG
@@ -56,7 +56,6 @@ typedef struct SubCommand SSubCommand;
  * @param command - The `Command` data structure
  */
 void ReadCommand(char *line, struct Command *command);
-
 /**
  * @brief Read redirects and background
  * This function populates fields `stdin_redirect`, `stdout_redirect`, and 
@@ -69,7 +68,6 @@ void ReadCommand(char *line, struct Command *command);
  * @param command - The `Command` data structure
  */
 void ReadRedirectsAndBackground(struct Command *command);
-
 /**
  * @brief Print command
  * @details
@@ -228,7 +226,9 @@ void PrintCommand(struct Command *command)
     }
     if (command->background) {
         printf("Background: yes\n");
-    }else {
+    }
+    else
+    {
         printf("Background: no\n");
     }
 }
@@ -238,7 +238,7 @@ void PrintArgs(char **argv)
 {
     // Print arguments
     int i = 0;
-    while (*argv != NULL) printf( DEBUG("  ") "argv[%d] = '%s'" DEBUG("\n") RELEASE(" "), i++, *(argv++));
+    while (*argv != NULL) printf( DEBUG("  ") "argv[%d] = '%s'\n", i++, *(argv++));
     RELEASE(printf("\n");)
 }
 
