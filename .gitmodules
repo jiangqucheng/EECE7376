@@ -4,3 +4,6 @@
 [submodule "HW4/xv6-qc-eece7376"]
 	path = HW4/xv6-qc-eece7376
 	url = git@github.com:jiangqucheng/xv6-qc-eece7376.git
+[submodule "xv6-qc-eece7376"]
+	path = xv6-qc-eece7376
+	url = git@github.com:jiangqucheng/xv6-qc-eece7376.git
