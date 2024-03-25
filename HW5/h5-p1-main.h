@@ -105,14 +105,14 @@ int main(int argc, char *argv[]) {
 
     printf("[[ " MY_BUILD_TYPE " ]]\n");
 
-    worker_info_t p1i = {.queue = &q, .worker_id = 1, .worker_duration_cycle = 1000, .worker_duration_type = Cycle, .worker_type = Writer};
-    worker_info_t p2i = {.queue = &q, .worker_id = 2, .worker_duration_cycle = 1000, .worker_duration_type = Cycle, .worker_type = Writer};
-    worker_info_t p3i = {.queue = &q, .worker_id = 3, .worker_duration_cycle = 1000, .worker_duration_type = Cycle, .worker_type = Writer};
-    worker_info_t p4i = {.queue = &q, .worker_id = 4, .worker_duration_cycle = 1000, .worker_duration_type = Cycle, .worker_type = Writer};
-    worker_info_t p5i = {.queue = &q, .worker_id = 5, .worker_duration_cycle = 1000, .worker_duration_type = Cycle, .worker_type = Reader};
-    worker_info_t p6i = {.queue = &q, .worker_id = 6, .worker_duration_cycle = 1000, .worker_duration_type = Cycle, .worker_type = Reader};
-    worker_info_t p7i = {.queue = &q, .worker_id = 7, .worker_duration_cycle = 1000, .worker_duration_type = Cycle, .worker_type = Reader};
-    worker_info_t p8i = {.queue = &q, .worker_id = 8, .worker_duration_cycle = 1000, .worker_duration_type = Cycle, .worker_type = Reader};
+    worker_info_t p1i = {.queue = &q, .worker_id = 1, .worker_duration_cycle = 1000, .worker_duration_type = Cycle, .worker_type = Writer},
+                  p2i = {.queue = &q, .worker_id = 2, .worker_duration_cycle = 1000, .worker_duration_type = Cycle, .worker_type = Writer},
+                  p3i = {.queue = &q, .worker_id = 3, .worker_duration_cycle = 1000, .worker_duration_type = Cycle, .worker_type = Writer},
+                  p4i = {.queue = &q, .worker_id = 4, .worker_duration_cycle = 1000, .worker_duration_type = Cycle, .worker_type = Writer},
+                  p5i = {.queue = &q, .worker_id = 5, .worker_duration_cycle = 1000, .worker_duration_type = Cycle, .worker_type = Reader},
+                  p6i = {.queue = &q, .worker_id = 6, .worker_duration_cycle = 1000, .worker_duration_type = Cycle, .worker_type = Reader},
+                  p7i = {.queue = &q, .worker_id = 7, .worker_duration_cycle = 1000, .worker_duration_type = Cycle, .worker_type = Reader},
+                  p8i = {.queue = &q, .worker_id = 8, .worker_duration_cycle = 1000, .worker_duration_type = Cycle, .worker_type = Reader};
 
     printf("[MAIN]: Begin.\n");
     update_time(&start_time, &start_time, &time_elapsed);
