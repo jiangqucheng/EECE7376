@@ -1,3 +1,11 @@
+/**
+ * @file hw5pr2.c
+ * @author Qucheng Jiang
+ * @author jiang.qu@northeastern.edu
+ * @author NUID 001569593
+ * @date 2024-03-26
+ */
+
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
