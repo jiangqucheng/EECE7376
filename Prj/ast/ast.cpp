@@ -5,44 +5,67 @@
 #include <algorithm>
 #include "debug.h"
 
+enum ERedirectStdio {REDIRECT_STDIN=0, REDIRECT_STDOUT=1, REDIRECT_STDERR=2, };
+typedef enum ERedirectStdio ERedirectStdio_t;
+
 // AST Node Types
-struct Node {
-    virtual ~Node() = default;
+class CNode {
+public:
+    virtual ~CNode() = default;
 };
 
-struct CommandNode : Node {
-    std::string                 m_command;
-    std::vector<std::string>    m_arguments;
-    std::array<std::string, 3>  m_redirects;
+class CCommandNode : CNode {
+    std::string                                             m_command;
+    std::vector<std::string>                                m_arguments;
+    std::vector<std::tuple<ERedirectStdio_t, std::string>>  m_redirects;
+    bool                                                    m_background;
 
-    CommandNode(std::string cmd)
+public:
+    CCommandNode(std::string cmd)
     : m_command(std::move(cmd))
-    , m_redirects({"", "", ""})
+    , m_background(false)
     {}
 
     void setCommand(std::string cmd) {
         m_command = std::move(cmd);
     }
 
+    void setBackground(bool background) {
+        m_background = background;
+    }
+
     void addArgument(std::string arg) {
         m_arguments.push_back(std::move(arg));
     }
 
-    void redirect(uint index, std::string redirect_file) {
-        m_redirects[index] = std::move(redirect_file);
+    void redirect(ERedirectStdio_t redirect_fd, std::string redirect_file) {
+        m_redirects.push_back(std::make_tuple(redirect_fd, redirect_file));
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const CommandNode& node) {
-        os << "Command: " << node.m_command << std::endl;
-        os << "Arguments: [";
-        for (const auto& arg : node.m_arguments) {
-            os << arg << ",";
+    friend std::ostream& operator<<(std::ostream& os, const CCommandNode& node) {
+        std::size_t ii = 0;
+        os << "CMD: " << node.m_command << (node.m_background?"  (BG)":"") << std::endl;
+        os << "ARG: [";
+        ii = 0;
+        for (const auto& arg : node.m_arguments) 
+        {
+            os
+                << arg
+                << (((ii++)<node.m_arguments.size()-1)?",":"")
+            ;
         }
         os << "]";
         os << std::endl;
-        os << "Redirects: [";
-        for (const auto& redirect : node.m_redirects) {
-            os << redirect << ",";
+        os << "IOE: [";
+        ii = 0;
+        for (const auto& redirect : node.m_redirects) 
+        {
+            os
+                << std::get<ERedirectStdio_t>(redirect)
+                << "="
+                << std::get<std::string>(redirect)
+                << (((ii++)<node.m_redirects.size()-1)?",":"")
+            ;
         }
         os << "]";
         os << std::endl;
@@ -50,199 +73,180 @@ struct CommandNode : Node {
     }
 };
 
-struct PipelineNode : Node {
-    std::vector<std::unique_ptr<CommandNode>> m_commands;
+class CPipelineNode : CNode {
+    std::vector<std::unique_ptr<CCommandNode>> m_commands;
 
-    void addCommand(std::unique_ptr<CommandNode> cmd) {
+public:
+    void addCommand(std::unique_ptr<CCommandNode> cmd) {
         m_commands.push_back(std::move(cmd));
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const PipelineNode& node) {
-        os << "pipeline stages: " << node.m_commands.size() << std::endl;
-        os << "---------" << std::endl;
-        for (const auto& cmd : node.m_commands) {
-            os << *cmd;
-            os << "- - - - -" << std::endl;
-        }
-        os << "---------" << std::endl;
-        os << std::endl;
+    friend std::ostream& operator<<(std::ostream& os, const CPipelineNode& node) {
+        os
+            << "------------------------"
+            << "<"
+            << node.m_commands.size()
+            << ">"
+            << std::endl
+        ;
+        std::size_t ii = 0;
+        for (const auto& cmd : node.m_commands) 
+            os
+                << *cmd 
+                << (((ii++)<node.m_commands.size()-1)?"- - - - - - - - - - - - - -\n":"")
+            ;
+        os << "---------------------------" << std::endl;
         return os;
     }
 };
 
-struct ScriptNode : Node {
+class CScriptNode : CNode {
     // only one for now
-    std::vector<std::unique_ptr<PipelineNode>> pipelines;
+    std::vector<std::unique_ptr<CPipelineNode>> m_pipelines;
 
-    void addPipeline(std::unique_ptr<PipelineNode> pipeline) {
-        pipelines.push_back(std::move(pipeline));
+public:
+    void addPipeline(std::unique_ptr<CPipelineNode> pipeline) {
+        m_pipelines.push_back(std::move(pipeline));
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const CScriptNode& node) {
+        os 
+            << "[[[[[ --- SCRIPT --- ]]]]]" 
+            << "\n    Contain " 
+            << node.m_pipelines.size() 
+            << " sep pipe.\n" 
+            << std::endl
+        ;
+        for (const auto& pp : node.m_pipelines) 
+            os << *pp << "\n";
+        os << "[[[[[ --- SCRIPT END --- ]]]]]" << std::endl;
+        return os;
     }
 };
 
 // Parser
-class BashParser {
+class PshParser {
 public:
-    std::unique_ptr<ScriptNode> parse(const std::string& input) {
-        auto script = std::make_unique<ScriptNode>();
-        auto pipeline = std::make_unique<PipelineNode>();
+    std::unique_ptr<CScriptNode> parse(const std::string& input) {
+        auto script = std::make_unique<CScriptNode>();
+        auto pipeline = std::make_unique<CPipelineNode>();
 
         std::istringstream input_stream(input);
-        char ch;
         
         // Tracks the current isInQuote context (0, '\'', '\"', '`')
         char isInQuote = 0; 
-        auto clearQuote = [&isInQuote]() { isInQuote = 0; };
+        // auto clearQuote = [&isInQuote]() { isInQuote = 0; };
         auto updateQuote = [&isInQuote](char q) { if (isInQuote == q) isInQuote = 0 /* end */; else if (isInQuote == 0) isInQuote = q /* start */; /* else -> ignore; */ };
 
         auto isQuoteSymbol =  [](char ch) -> bool {return (ch == '\'' || ch == '\"' || ch == '`');};
         auto isRedirectSymbol =  [](char ch) -> bool {return (ch == '>' || ch == '<');};
-        auto isCommandEndSymbol =  [](char ch) -> bool {return (ch == '&' || ch == '|');};
+        auto isPipelineSymbol =  [](char ch) -> bool {return (ch == '|');};
+        auto isCommandEndSymbol =  [](char ch) -> bool {return (ch == ';' || ch == '|');};
+        auto isBackgroundSymbol =  [](char ch) -> bool {return (ch == '&');};
 
         bool isInCmd = true; // True if we're expecting a command, false for arguments
         bool isInRedirect = false; // True if we're expecting a redirect, false for arguments
-        int isRedirecting = 0; // 0 - stdin; 1 - stdout; 2 - stderr; 
+        ERedirectStdio_t isRedirecting = REDIRECT_STDIN;
         std::string t_currentStr = "";
-
 
         
         // Tracks the current is part of command or arg
-        auto currentCommandNode = std::make_unique<CommandNode>("");
-        auto updateCommandNode = [&currentCommandNode, &isInCmd, &isInRedirect, &isRedirecting](std::string str) { 
+        auto currentCommandNode = std::make_unique<CCommandNode>("");
+        auto updateCommandNode = [&currentCommandNode, &isInCmd, &isInRedirect, &isRedirecting](std::string &str) { 
             if (str.size() > 0) {
                 if (isInCmd){
+                    // in command
                     currentCommandNode->setCommand(std::move(str));
                     isInCmd = false;
                     isInRedirect = false;
                 }
                 else if (!isInRedirect) {
                     // in args
-                    if (str.size() > 0) currentCommandNode->addArgument(std::move(str));
+                    currentCommandNode->addArgument(std::move(str));
                 }
                 else {
                     // in Redirect
-                    // PRINT(__LOCATION__ << str << '\n' )
                     currentCommandNode->redirect(isRedirecting, std::move(str));\
-                    isRedirecting = 0;
                     isInRedirect = false;
+                    isRedirecting = REDIRECT_STDIN;
                 }
+                str = "";
             }
         };
 
         for (auto ch : input ) 
         {
-            // PRINT(__LOCATION__ << ch << '\n')
             if (isQuoteSymbol(ch)) {updateQuote(ch);}
             t_currentStr += ch;
 
+            // skip in still in quote text mode
             if (isInQuote) continue;
 
             if (!isInRedirect && isRedirectSymbol(ch)) 
             {
-                if ("2>" == t_currentStr) isRedirecting = 2;
+                if ("2>" == t_currentStr) 
+                {
+                    isRedirecting = REDIRECT_STDERR;
+                    // we are sure that redirect to stderr must have a space in front.
+                    t_currentStr = "";
+                }
                 else
                 {
                     t_currentStr.pop_back();
+                    // redirect to stdin/stdout may not have space in front. 
+                    // update that part first.
                     updateCommandNode(t_currentStr);
-                    if (ch == '>') isRedirecting = 1; else isRedirecting = 0;
+                    isRedirecting = (ch == '>') ? REDIRECT_STDOUT : REDIRECT_STDIN;
                 }
-                t_currentStr = "";
-                isInRedirect=true;
+                isInRedirect = true;
             }
 
-            if (isspace(ch) || (isCommandEndSymbol(ch) && !(isInRedirect && ch=='&')))
+            if (isspace(ch) || isCommandEndSymbol(ch) || (isBackgroundSymbol(ch) && (!isInRedirect || t_currentStr.size()>=2)))
             {
                 t_currentStr.pop_back();
                 updateCommandNode(t_currentStr);
-                t_currentStr = "";
                 
+                if ((isBackgroundSymbol(ch) && !isInRedirect)) currentCommandNode->setBackground(true);
+
                 if (isCommandEndSymbol(ch))
                 {
                     pipeline->addCommand(std::move(currentCommandNode));
-                    currentCommandNode = std::make_unique<CommandNode>("");
+                    if (!isPipelineSymbol(ch))
+                    {
+                        script->addPipeline(std::move(pipeline));
+                        // get a new pipeline container
+                        pipeline = std::make_unique<CPipelineNode>();
+                    }
+                    // get a new command container
+                    currentCommandNode = std::make_unique<CCommandNode>("");
                     isInCmd = true;
                     isInRedirect = false;
                 }
             }
         }
 
+        // Process any remaining command and arguments
         updateCommandNode(t_currentStr);
-
+        // update pipeline list
         pipeline->addCommand(std::move(currentCommandNode));
+        // update script list
         script->addPipeline(std::move(pipeline));
-
-        // std::string currentCmd;
-        // std::vector<std::string> currentArgs;
-        // bool isInCmd = true; // True if we're expecting a command, false for arguments
-
-        // while (input_stream >> ch) 
-        // {
-        //     // PRINT(__LOCATION__ << token << '\n')
-        //     for (char ch : token)
-        //     {
-        //         if (isCharAQuoteSymbol(ch) && (isInQuote == 0 || isInQuote == ch)) {
-        //             setQuote(ch); // Start or end isInQuote context
-        //         }
-
-        //         if (isInQuote || !isspace(ch)) { // Inside quotes or non-space character
-        //             (isInCmd ? currentCmd : currentArgs.back()) += ch;
-        //         } else if (!isInCmd && isspace(ch)) { // Argument separator outside quotes
-        //             currentArgs.push_back(""); // Start a new argument
-        //         }
-        //     }
-
-        //     // PRINT(__LOCATION__ << "[" << (isInCmd ? "Cmd" : "Arg") << "]" << " {" << currentCmd << "} Arg:" << (currentArgs.size() ? currentArgs.front() : "") << '\n')
-
-        //     if (!isInQuote) { // Not inside quotes
-        //         if (isInCmd) {
-        //             isInCmd = false; // Next tokens will be arguments
-        //         }
-        //         currentArgs.push_back(""); // Prepare for the first argument
-        //     }
-
-        //     // Handle special case if the last character was a separator (like '|')
-        //     if (!isspace(token.back()) && isInQuote == 0) {
-        //         if (token.back() == '|') {
-        //             // Process current command and arguments
-        //             auto pipeline = std::make_unique<PipelineNode>();
-        //             auto commandNode = std::make_unique<CommandNode>(currentCmd);
-        //             commandNode->arguments = std::move(currentArgs);
-        //             pipeline->addCommand(std::move(commandNode));
-        //             script->addPipeline(std::move(pipeline));
-
-        //             // Reset for next command
-        //             currentCmd.clear();
-        //             currentArgs.clear();
-        //             isInCmd = true;
-        //         } else {
-        //             // currentArgs.back() += token.back();
-        //         }
-        //     }
-        // }
-
-        // // Process any remaining command and arguments
-        // if (!currentCmd.empty()) {
-        //     auto pipeline = std::make_unique<PipelineNode>();
-        //     auto commandNode = std::make_unique<CommandNode>(currentCmd);
-        //     commandNode->arguments = std::move(currentArgs);
-        //     pipeline->addCommand(std::move(commandNode));
-        //     script->addPipeline(std::move(pipeline));
-        // }
 
         return script;
     }
 };
 
 // Main function for demonstration
-int main() {
-    BashParser parser;
-    // auto ast = parser.parse("echo \"Hello, world\" -e aaa | grep 'world'");
-    auto ast = parser.parse("echo \"Hello, world\"     <    hhhass?c -e aaa> adsnii 2>&1|grep 'world' ");
+int main(int argc, char* argv[])
+{
+    std::string argStr;
+    // start from id=1 since argv[0] is executable name.
+    for (int i = 1; i < argc; ++i) argStr += std::string(argv[i]) + ((i < argc-1) ? " " : ""); 
 
-    // Demonstration: print the parsed command
-    for (const auto& pipeline : ast->pipelines) {
-        std::cout << *pipeline;
-        std::cout << "\n";
-    }
+    PshParser parser;
+    auto ast = parser.parse(argStr);
+
+    std::cout << *ast;
 
     return 0;
 }
