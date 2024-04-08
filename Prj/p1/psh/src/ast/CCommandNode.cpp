@@ -5,6 +5,25 @@ CCommandNode::CCommandNode(std::string cmd)
 , m_background(false)
 {}
 
+
+const std::string& CCommandNode::getCommand() const
+{
+    return m_command;
+}
+bool CCommandNode::isBackground() const
+{
+    return m_background;
+}
+const std::vector<std::string>& CCommandNode::getArgument() const
+{
+    return m_arguments;
+}
+const std::vector<std::tuple<ERedirectStdio_t, std::string>>& CCommandNode::getRedirects() const
+{
+    return m_redirects;
+}
+
+
 void CCommandNode::setCommand(std::string cmd) 
 {
     m_command = std::move(cmd);

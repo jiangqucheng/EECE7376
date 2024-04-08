@@ -17,12 +17,17 @@ public:
     CCommandNode(std::string cmd);
 
     void setCommand(std::string cmd);
+    const std::string& getCommand() const;
 
     void setBackground(bool background);
+    bool isBackground() const;
 
     void addArgument(std::string arg);
+    const std::vector<std::string>& getArgument() const;
 
     void redirect(ERedirectStdio_t redirect_fd, std::string redirect_file);
+    const std::vector<std::tuple<ERedirectStdio_t, std::string>>& getRedirects() const;
 
     friend std::ostream& operator<<(std::ostream& os, const CCommandNode& node);
 };
+

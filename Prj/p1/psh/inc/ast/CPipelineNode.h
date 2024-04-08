@@ -12,6 +12,8 @@ class CPipelineNode : CNode {
 
 public:
     void addCommand(std::unique_ptr<CCommandNode> cmd);
+    
+    const std::vector<std::unique_ptr<CCommandNode>>& getCommands() const;
 
     friend std::ostream& operator<<(std::ostream& os, const CPipelineNode& node);
 };

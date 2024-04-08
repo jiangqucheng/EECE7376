@@ -18,5 +18,7 @@ class CScriptNode : CNode {
 public:
     void addPipeline(std::unique_ptr<CPipelineNode> pipeline);
 
+    const std::vector<std::unique_ptr<CPipelineNode>>& getPipelines() const;
+
     friend std::ostream& operator<<(std::ostream& os, const CScriptNode& node);
 };

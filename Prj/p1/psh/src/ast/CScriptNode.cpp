@@ -6,6 +6,12 @@ void CScriptNode::addPipeline(std::unique_ptr<CPipelineNode> pipeline)
     m_pipelines.push_back(std::move(pipeline));
 }
 
+const std::vector<std::unique_ptr<CPipelineNode>>& CScriptNode::getPipelines() const
+{
+    return m_pipelines;
+}
+
+
 std::ostream& operator<<(std::ostream& os, const CScriptNode& node) 
 {
     os 
