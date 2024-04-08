@@ -3,7 +3,11 @@
 CXX = g++
 
 # Compiler flags
-CXXFLAGS = -Wall -g
+DEBUG = 1
+CXXFLAGS = -Wall -g 
+ifeq ($(DEBUG), 1)
+CXXFLAGS += -DDEBUG
+endif
 
 # Directories
 SRCDIR = src
@@ -24,6 +28,9 @@ $(TARGET): $(OBJS)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+run: all
+	$(TARGET)
 
 directories:
 	mkdir -p $(OBJDIR)
