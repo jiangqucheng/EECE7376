@@ -1,3 +1,8 @@
+/**
+ * @author Qucheng Jiang
+ * @author jiang.qu@northeastern.edu
+ * @author NUID 001569593
+ */
 
 #include "debug.h"
 #include "CShell.h"
